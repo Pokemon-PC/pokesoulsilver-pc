@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: [HEARTGOLD, SOULSILVER]   # two games, two executables
+        version: [SOULSILVER]   # this repository: SoulSilver (HeartGold: pokeheartgold-pc)
         name: [windows, linux, macos]
         include:
           - name: windows

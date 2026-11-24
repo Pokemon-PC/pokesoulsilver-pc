@@ -6,7 +6,7 @@
 #                       links an executable so its code and static data live
 #                       below 4 GiB (see src/platform_pc/hw_pc.h for why).
 
-set(PHG_GAME_VERSION "HEARTGOLD" CACHE STRING "HEARTGOLD or SOULSILVER")
+set(PHG_GAME_VERSION "SOULSILVER" CACHE STRING "HEARTGOLD or SOULSILVER")   # pokesoulsilver-pc: SoulSilver by default
 set_property(CACHE PHG_GAME_VERSION PROPERTY STRINGS HEARTGOLD SOULSILVER)
 set(PHG_GAME_LANGUAGE "ENGLISH" CACHE STRING "Game language (only ENGLISH is supported by the decomp)")
 option(PHG_WARN_PTR_CASTS "Report pointer<->int size-mismatch casts in game code (64-bit audit)" OFF)
