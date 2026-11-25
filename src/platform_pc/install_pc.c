@@ -8,12 +8,16 @@
  *                          mods_ss/, save_ss.bin and an IPG* ROM)
  *   config.ini            (written on first run)
  *   save.bin              (the 512 KiB backup memory, same format as the DS)
- *   <anything>.nds        (the player's HeartGold ROM, only needed once)
+ *   <anything>.nds        (the player's HeartGold ROM, only needed once; it
+ *                          can also sit in the folder named by config.ini
+ *                          [options] rom_dir or --rom-dir, shared by all games)
  *   pc_data/<lang>/       (files extracted from that ROM on first run)
  *   mods/, mods/<lang>/   (optional: files that override pc_data)
  *
- * Base directory: the executable's folder when it holds pc_data/ or a ROM,
- * otherwise the source tree (developer builds, PHG_REPO_DIR).
+ * Base directory: $PHG_BASE_DIR if set, else the executable's folder when it
+ * holds pc_data/ or a ROM, otherwise the source tree (developer builds,
+ * PHG_REPO_DIR) when it has pc_data/, else the executable's folder.
+ * ROMs are told apart by the game code of their header, never by file name.
  *
  * The extractor reads the ROM's NitroFS (FNT + FAT) exactly like
  * tools/pc_port/nitrofs.py. Language: 4th letter of the game code
@@ -44,6 +48,9 @@
 #endif
 
 static char s_base[1024];
+static char s_rom_dir[1024];   /* --rom-dir, "" = config.ini rom_dir */
+
+static const char *lang_from_code(char c);
 
 static bool dir_exists(const char *path) {
     struct stat st;
@@ -70,10 +77,12 @@ static void rom_game_code(const char *path, char code[5]) {
 }
 
 /* A *.nds file in dir (out: full path): this version's ROM (game code
- * PC_GAME_CODE3*) if there is one, else the first one found (so that a wrong
- * ROM gets a clear message). HeartGold and SoulSilver ROMs can sit together. */
-static bool find_rom(const char *dir, char *out, size_t n) {
-    bool found = false;
+ * PC_GAME_CODE3*), in language `lang` if one is (NULL: any). Without one,
+ * any_nds picks the first .nds found (so that a wrong ROM next to the game
+ * gets a clear message); a shared ROM folder holding other games passes false.
+ * HeartGold and SoulSilver ROMs can sit together. */
+static bool find_rom_ex(const char *dir, char *out, size_t n, const char *lang, bool any_nds) {
+    bool found = false, matched = false;
     char path[1100], code[5];
 #if defined(_WIN32)
     char pattern[1100];
@@ -99,12 +108,18 @@ static bool find_rom(const char *dir, char *out, size_t n) {
         snprintf(path, sizeof path, "%s/%s", dir, e->d_name);
 #endif
         rom_game_code(path, code);
-        if (memcmp(code, PC_GAME_CODE3, 3) == 0) {
-            snprintf(out, n, "%s", path);
-            found = true;
-            break;
+        if (code[0] != '\0' && memcmp(code, PC_GAME_CODE3, 3) == 0) {
+            const char *l = lang_from_code(code[3]);
+            if (!matched || (lang != NULL && l != NULL && strcmp(l, lang) == 0)) {
+                snprintf(out, n, "%s", path);
+                found = matched = true;
+            }
+            if (lang == NULL || (l != NULL && strcmp(l, lang) == 0)) {
+                break;
+            }
+            continue;   /* right game, other language: keep looking */
         }
-        if (!found) {
+        if (!found && any_nds) {
             snprintf(out, n, "%s", path);
             found = true;   /* keep looking for the right version */
         }
@@ -116,6 +131,10 @@ static bool find_rom(const char *dir, char *out, size_t n) {
     closedir(d);
 #endif
     return found;
+}
+
+static bool find_rom(const char *dir, char *out, size_t n) {
+    return find_rom_ex(dir, out, n, NULL, true);
 }
 
 static void exe_dir(char *out, size_t n) {
@@ -137,6 +156,11 @@ const char *pc_install_base_dir(void) {
         return s_base;
     }
     char exe[1024], probe[1100], rom[1100];
+    const char *forced = getenv("PHG_BASE_DIR");
+    if (forced != NULL && forced[0] != '\0') {
+        snprintf(s_base, sizeof s_base, "%s", forced);
+        return s_base;
+    }
     exe_dir(exe, sizeof exe);
     snprintf(probe, sizeof probe, "%s" SEP PC_DATA_DIR, exe);
     if (dir_exists(probe) || find_rom(exe, rom, sizeof rom)) {
@@ -306,6 +330,55 @@ static bool any_rom_data(const char *base) {
     return false;
 }
 
+void pc_install_set_rom_dir(const char *dir) {
+    snprintf(s_rom_dir, sizeof s_rom_dir, "%s", dir != NULL ? dir : "");
+}
+
+/* The ROM folder (--rom-dir, else config.ini rom_dir), relative paths taken
+ * from the executable's folder. "" if none. */
+static void rom_dir(char *out, size_t n) {
+    const char *d = s_rom_dir[0] != '\0' ? s_rom_dir : pc_config()->romDir;
+    out[0] = '\0';
+    if (d == NULL || d[0] == '\0') {
+        return;
+    }
+    bool absolute = d[0] == '/' || d[0] == '\\' || (d[0] != '\0' && d[1] == ':');
+    if (absolute) {
+        snprintf(out, n, "%s", d);
+    } else {
+        char exe[1024];
+        exe_dir(exe, sizeof exe);
+        snprintf(out, n, "%s" SEP "%s", exe, d);
+    }
+    size_t l = strlen(out);
+    while (l > 1 && out[l - 2] != ':' && (out[l - 1] == '/' || out[l - 1] == '\\')) {
+        out[--l] = '\0';
+    }
+}
+
+/* The player's ROM: next to the game (base dir), else this version's ROM in
+ * rom_dir, preferably in language `lang`. */
+static bool find_player_rom(const char *base, char *out, size_t n, const char *lang) {
+    if (find_rom(base, out, n)) {
+        return true;
+    }
+    char dir[1024];
+    rom_dir(dir, sizeof dir);
+    if (dir[0] == '\0') {
+        return false;
+    }
+    if (!dir_exists(dir)) {
+        pc_warn("install: rom_dir %s does not exist", dir);
+        return false;
+    }
+    if (find_rom_ex(dir, out, n, lang, false)) {
+        pc_log("install: ROM found in rom_dir: %s", out);
+        return true;
+    }
+    pc_warn("install: no " PC_GAME_CODE3 "* ROM in rom_dir %s", dir);
+    return false;
+}
+
 const char *pc_install_prepare(const char *requested_lang) {
     const char *base = pc_install_base_dir();
     char probe[1200], rom[1100];
@@ -314,7 +387,7 @@ const char *pc_install_prepare(const char *requested_lang) {
         if (dir_exists(probe) && any_rom_data(base)) {
             return requested_lang;           /* the ROM data fills in the rest */
         }
-        if (dir_exists(probe) && find_rom(base, rom, sizeof rom) && extract_rom(base, rom) != NULL) {
+        if (dir_exists(probe) && find_player_rom(base, rom, sizeof rom, requested_lang) && extract_rom(base, rom) != NULL) {
             return requested_lang;
         }
     } else {
@@ -325,7 +398,7 @@ const char *pc_install_prepare(const char *requested_lang) {
             }
         }
     }
-    if (find_rom(base, rom, sizeof rom)) {
+    if (find_player_rom(base, rom, sizeof rom, requested_lang)) {
         const char *lang = extract_rom(base, rom);
         if (lang != NULL && (requested_lang == NULL || strcmp(lang, requested_lang) == 0)) {
             return lang;
@@ -345,9 +418,11 @@ const char *pc_install_prepare(const char *requested_lang) {
     snprintf(msg, sizeof msg,
              "Donn\xc3\xa9\x65s du jeu introuvables.\n"
              "Copiez la ROM de VOTRE cartouche " PC_GAME_TITLE_FR " (fichier .nds)\n"
-             "dans ce dossier, puis relancez le jeu :\n%s\n\n"
+             "dans ce dossier (ou dans le dossier rom_dir de config.ini),\n"
+             "puis relancez le jeu :\n%s\n\n"
              "Game data not found. Copy the ROM dumped from YOUR OWN\n"
-             "" PC_GAME_TITLE_EN " cartridge (.nds file) into this folder and restart.",
+             "" PC_GAME_TITLE_EN " cartridge (.nds file) into this folder (or into\n"
+             "the rom_dir folder of config.ini) and restart.",
              base);
     message(PC_GAME_TITLE, msg);
     return NULL;

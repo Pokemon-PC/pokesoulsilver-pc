@@ -28,6 +28,13 @@ cartouche SoulSilver. Ses fichiers sont séparés : `pc_data_ss/`, `mods_ss/`,
 `save_ss.bin`. Les deux jeux peuvent partager un dossier, ROM comprises :
 chacun prend la sienne (code de jeu IPK… pour HeartGold, IPG… pour SoulSilver).
 
+**Dossier de ROM commun** : si vous rangez toutes vos ROM dans un même dossier,
+indiquez-le dans `config.ini`, section `[options]` :
+`rom_dir = D:\Jeux\roms` (ou lancez avec `--rom-dir DOSSIER`). Quand aucune
+ROM n'est à côté du jeu et que les données ne sont pas encore extraites, le
+jeu y cherche sa ROM d'après son en-tête (code de jeu), quel que soit le nom du
+fichier ; les autres ROM du dossier sont ignorées.
+
 ### Langue
 
 Le jeu prend la langue de votre ROM. Pour jouer dans l'autre langue
@@ -58,7 +65,7 @@ l'avance rapide, plein écran, disposition `large_top` / `stacked` /
 
 ### Options de lancement
 
-`pokeheartgold.exe [--lang fr|en] [--save FICHIER] [--scale N] [--data DOSSIER]`
+`pokeheartgold.exe [--lang fr|en] [--save FICHIER] [--scale N] [--rom-dir DOSSIER] [--data DOSSIER]`
 
 ### Limites
 
@@ -96,6 +103,12 @@ package `PokemonSoulSilver-PC-…`) and your SoulSilver cartridge ROM. Its files
 are kept apart: `pc_data_ss/`, `mods_ss/`, `save_ss.bin`. Both games can share
 one folder, ROMs included: each picks its own (game code IPK… for HeartGold,
 IPG… for SoulSilver).
+
+**Shared ROM folder**: if you keep all your ROMs in one folder, name it in
+`config.ini`, section `[options]`: `rom_dir = D:\Games\roms` (or start with
+`--rom-dir DIR`). When no ROM sits next to the game and the data is not
+extracted yet, the game looks there for its ROM by its header (game code),
+whatever the file is called; the other ROMs in the folder are ignored.
 
 ### Language
 

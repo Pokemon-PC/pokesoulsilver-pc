@@ -11,7 +11,9 @@
  * include SDL (see PORTING_ROADMAP.md, M2).
  *
  * Usage: pokeheartgold [--lang fr|en] [--data DIR] [--save FILE] [--scale N]
- * First run: the player's ROM (*.nds) in the game folder is extracted to
+ *                      [--rom-dir DIR]
+ * First run: the player's ROM (*.nds) in the game folder, or else in rom_dir
+ * (--rom-dir, config.ini [options] rom_dir), is extracted to
  * pc_data/<lang> (install_pc.c); the language follows the ROM.
  * Test hooks (environment): PHG_EXIT_AFTER, PHG_TEST_RESET_AT (nitro_pc.c).
  */
@@ -48,8 +50,9 @@ int main(int argc, char **argv) {
         else if (!strcmp(argv[i], "--data")) data = argv[i + 1];
         else if (!strcmp(argv[i], "--save")) save = argv[i + 1];
         else if (!strcmp(argv[i], "--scale")) scale = atoi(argv[i + 1]);
+        else if (!strcmp(argv[i], "--rom-dir")) pc_install_set_rom_dir(argv[i + 1]);
         else {
-            fprintf(stderr, "usage: pokeheartgold [--lang fr|en] [--data DIR] [--save FILE] [--scale N]\n");
+            fprintf(stderr, "usage: pokeheartgold [--lang fr|en] [--data DIR] [--save FILE] [--scale N] [--rom-dir DIR]\n");
             return 2;
         }
     }

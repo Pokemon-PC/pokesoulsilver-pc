@@ -16,7 +16,9 @@ cette page quand le code du launcher arrive.
 | | `config.ini` → `[options] language = auto\|fr\|en` | `auto` = langue de la ROM du joueur |
 | Sauvegarde | `--save FICHIER` | défaut : `save.bin` (HG) / `save_ss.bin` (SS) à côté de l'exe |
 | Taille de fenêtre | `--scale N` | sinon `[display] window_scale` |
+| Dossier de ROM commun | `--rom-dir DOSSIER` ou `config.ini` → `[options] rom_dir = D:\LUC\pokemonall\roms` | cherché après le dossier de l'exe, seulement si les données ne sont pas encore extraites ; ROM choisie d'après le code jeu de l'en-tête (IPK… HG, IPG… SS, langue = 4e lettre), jamais d'après le nom ; chemin relatif = depuis le dossier de l'exe |
 | Données | `--data DOSSIER` (développement) | sinon détection automatique (ci-dessous) |
+| Dossier de base | variable `PHG_BASE_DIR=dossier` (tests) | force le dossier de `pc_data/` et `mods/` (sinon détection ci-dessous) |
 
 Codes de sortie : 0 normal ; 1 = données introuvables (une boîte de dialogue a
 déjà expliqué au joueur quoi faire).
@@ -27,6 +29,7 @@ déjà expliqué au joueur quoi faire).
 pokeheartgold.exe          pokesoulsilver.exe
 config.ini                 (partagé, créé au premier lancement)
 <ROM>.nds                  ROM du joueur : HG = code IPK*, SS = code IPG*
+                           (ou dans rom_dir, le dossier commun de ROM)
 pc_data/<langue>/          HG : ROM extraite au 1er lancement (langue de la ROM)
 pc_data/en/                HG : couche anglaise construite depuis le dépôt
 pc_data_ss/<langue>/       SS : idem

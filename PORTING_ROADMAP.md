@@ -292,7 +292,10 @@ non redistribuable) pour les scripts et tables.
 
 **Données — décision (utilisateur) : jeu en français depuis sa propre
 cartouche, anglais prévu ensuite.**
-- `rom_gen4.nds` = HeartGold **FR** (`IPKF`). Son système de fichiers a les
+- La ROM HeartGold **FR** (`IPKF` ; ex `roms/gen4_nds/rom_gen4.nds`, désormais
+  `D:\LUC\pokemonall\roms\Pokemon - Version Or HeartGold (France).nds`, dossier
+  commun de toutes les ROM, lu par les ports via `[options] rom_dir` de
+  `config.ini` ou `--rom-dir`, ROM choisie par code jeu). Son système de fichiers a les
   mêmes 384 chemins que le dépôt : 268 fichiers identiques, 44 localisés,
   et il fournit les 72 manquants. Extraction : `python tools/pc_port/nitrofs.py
   extract <rom> pc_data/fr` (dossier ignoré par git, à ne jamais partager).
